@@ -36,8 +36,8 @@ if __name__ == '__main__':
     duplications = 10
     output_base = "/home/gmcwhirt/Documents/Sources/gametheory/output/%s"
     output_file_base = "duplication_%i"
-    #generations = 1e6
-    generations = 1e4
+    generations = 1e6
+    #generations = 1e4
     default_weight = 2.
 
     sg = SeltenGame(2, [2,2],[2,2], receiver_sim_2, receiver_sim_2)
