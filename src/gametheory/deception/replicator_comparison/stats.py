@@ -1,7 +1,7 @@
 import math
 import itertools
-import Payoffs as p
-from Simulations import effective_zero, sender_matrix, receiver_matrix
+import gametheory.deception.replicator_comparison.payoffs as p
+from gametheory.deception.replicator_comparison.simulations import effective_zero, sender_matrix, receiver_matrix
 
 def values_of_information(final_sender, final_receiver, r_payoffs, rstars, r_ps, n=2, rstar_type=0):
     msgs = list(itertools.product(range(n), range(n)))
@@ -291,12 +291,11 @@ def output_klstats(duplications, options, r_payoffs, s_payoffs):
     print "Average deception probability (by sender): %.2f" % (math.fsum(avg_s_decept) / float(len(avg_s_decept)),)
     print "Average deception probability (by receiver): %.2f" % (math.fsum(avg_r_decept) / float(len(avg_r_decept)),)
     print "=" * 72
-    
-    
-if __name__ == '__main__':
+
+def run():
     import cPickle
     from optparse import OptionParser
-    
+
     oparser = OptionParser()
     oparser.add_option("-f", "--statsfile", action="store", dest="stats_file", default="../output/aggregate", help="file holding aggregate stats to be parsed")
     oparser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False, help="detailed output?")
@@ -304,9 +303,9 @@ if __name__ == '__main__':
     oparser.add_option("-n", "--nosumm", action="store_false", dest="summary", default=True, help="do not output summary statistics")
     oparser.add_option("-k", "--klstats", action="store_true", dest="kl", default=False, help="caluclate KL value stats")
     oparser.add_option("-q", "--quiet", action="store_true", dest="quiet", default=False, help="only output VoI / KL aggregates")
-	
+
     (options,args) = oparser.parse_args()
-    
+
     #of = open(options.out_file,"w")
     sf = open(options.stats_file,"rb")
     run_options = None
@@ -323,39 +322,39 @@ if __name__ == '__main__':
             else:
                 duplications.append((i, cPickle.loads(pickle)))
             pickle = ""
-    
+
     if i <= 1:
         print "error"
     sf.close()
-    
+
     massaged_dups = []
-    
+
     for dup in duplications:
         ps = [0., 0.]
         #initial_sender, initial_receiver = dup[1][0]
         final_sender, final_receiver = dup[1][1]
         generations = dup[1][2]
-        
+
         final_sender = [(j, st) for (j, st) in enumerate(final_sender) if st >= 10. * effective_zero]
         final_receiver = [((j,typ), st) for (j,(st, typ)) in enumerate(final_receiver) if st >= 10. * effective_zero]
-        
+
         for (j, typ), st in final_receiver:
             ps[typ] += st
-        
+
         massaged_dups.append(((final_sender, final_receiver, generations), ps))
-        
+
     print "Total Duplications: %i, avg generations: %.2f" % (len(massaged_dups), float(sum(i[2] for i, ps in massaged_dups)) / float(len(massaged_dups)))
-    
-    
-    r_payoffs = p.receiver_sim(run_options.lam, run_options.rc_cost, run_options.rnc_cost)    
+
+
+    r_payoffs = p.receiver_sim(run_options.lam, run_options.rc_cost, run_options.rnc_cost)
     rstars = range(4)
-        
+
     if options.summary:
         output_summary(massaged_dups, options)
-            
+
     if options.voi:
         output_voistats(massaged_dups, options, r_payoffs, rstars)
-        
+
     if options.kl:
         if run_options.routine == "simil0":
             s_payoffs = p.sender_sim_0()
@@ -363,6 +362,9 @@ if __name__ == '__main__':
             s_payoffs = p.sender_sim_1()
         elif run_options.routine == "simil2":
             s_payoffs = p.sender_sim_2()
-                
+
         output_klstats(massaged_dups, options, r_payoffs, s_payoffs)
+        
+if __name__ == '__main__':
+    run()
         

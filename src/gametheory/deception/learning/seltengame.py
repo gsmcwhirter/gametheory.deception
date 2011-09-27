@@ -1,4 +1,4 @@
-from Immutable import *
+from gametheory.deception.learning.immutable import *
 import itertools
 import functools
 import random

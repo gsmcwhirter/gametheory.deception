@@ -1,7 +1,7 @@
 import math
 import itertools
-import Payoffs as p
-from Simulations import effective_zero, sender_matrix, receiver_matrix, interaction
+import gametheory.deception.replicator.payoffs as p
+from gametheory.deception.replicator.simulations import effective_zero, sender_matrix, receiver_matrix
 
 def values_of_information(final_sender, final_receiver, r_payoffs, n=2):
     msgs = list(itertools.product(range(n), range(n)))
@@ -150,7 +150,7 @@ def output_voistats(duplications, options, r_payoffs):
             #        print
             print "Values of Information (msg : expected voi):"
             for (msg, val) in vois:
-                print "\t", msg,":",vals
+                print "\t", msg,":",val
             print
         
         if any(val < 0. for (msg, val) in vois if val != "N/A"):    
@@ -267,11 +267,11 @@ def output_klstats(duplications, options, r_payoffs, s_payoffs):
     print "Average deception probability (by receiver): %.2f" % (math.fsum(avg_r_decept) / float(len(avg_r_decept)),)
     print "=" * 72
     
-    
-if __name__ == '__main__':
+
+def run():
     import cPickle
     from optparse import OptionParser
-    
+
     oparser = OptionParser()
     oparser.add_option("-f", "--statsfile", action="store", dest="stats_file", default="../output/aggregate", help="file holding aggregate stats to be parsed")
     #oparser.add_option("-f", "--file", action="store", dest="out_file", default="../output/stats", help="file to dump the stats output (not implemented yet)")
@@ -282,12 +282,12 @@ if __name__ == '__main__':
     oparser.add_option("-r", "--rpayoffs", action="store", dest="rpoffs", choices=["simil", "dist"], default="simil", help="receiver payoff type")
     oparser.add_option("-s", "--spayoffs", action="store", dest="spoffs", type="int", default=0, help="sender payoff structure index")
     oparser.add_option("-q", "--quied", action="store_true", dest="quiet", default=False, help="only output VoI / KL aggregates")
-	
+
     (options,args) = oparser.parse_args()
 
     if options.spoffs < 0 or options.spoffs > 2:
         oparser.error("Sender payoff index out of bounds")
-    
+
     #of = open(options.out_file,"w")
     sf = open(options.stats_file,"rb")
     duplications = []
@@ -300,36 +300,36 @@ if __name__ == '__main__':
             i += 1
             duplications.append((i, cPickle.loads(pickle)))
             pickle = ""
-    
+
     if i == 0:
         print "error"
     sf.close()
-    
+
     massaged_dups = []
-    
+
     for dup in duplications:
         initial = dup[1][0]
         final_sender, final_receiver = dup[1][1]
         generations = dup[1][2]
-        
+
         final_sender = [(j, st) for (j, st) in enumerate(final_sender) if st >= 10. * effective_zero]
         final_receiver = [(j, st) for (j,st) in enumerate(final_receiver) if st >= 10. * effective_zero]
-        
+
         massaged_dups.append((final_sender, final_receiver, generations))
-        
+
     print "Total Duplications: %i, avg generations: %.2f" % (len(massaged_dups), float(sum(i[2] for i in massaged_dups)) / float(len(massaged_dups)))
-        
-    if options.rpoffs == "simil": 
+
+    if options.rpoffs == "simil":
         r_payoffs = p.receiver_sim_2
     else:
-        r_payoffs = p.receiver_dist_2    
-        
+        r_payoffs = p.receiver_dist_2
+
     if options.summary:
         output_summary(massaged_dups, options)
-            
+
     if options.voi:
         output_voistats(massaged_dups, options, r_payoffs)
-        
+
     if options.kl:
         if options.spoffs == 0:
             s_payoffs = r_payoffs[0]
@@ -338,11 +338,13 @@ if __name__ == '__main__':
                 s_payoffs = p.sender_sim_2_1
             else:
                 s_payoffs = p.sender_dist_2_1
-        elif options.spoffs == 2:            
-            if options.rpoffs == "simil":    
+        elif options.spoffs == 2:
+            if options.rpoffs == "simil":
                 s_payoffs = p.sender_sim_2_2
             else:
                 s_payoffs = p.sender_dist_2_2
-                
+
         output_klstats(massaged_dups, options, r_payoffs[0], s_payoffs)
-        
+
+if __name__ == '__main__':
+    run()

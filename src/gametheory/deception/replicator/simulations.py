@@ -1,9 +1,8 @@
 import math
 import itertools
-import Payoffs as p
+import gametheory.deception.replicator.payoffs as p
 import sys
 import multiprocessing as mp
-import logging
 import cPickle
 
 effective_zero_diff = 1e-11
@@ -102,7 +101,7 @@ def run_simulation(s_payoffs, r_payoffs, filename = None, output_skip = 1, quiet
     while not pop_equals(last_generation, this_generation):
         generation_count += 1
         last_generation = this_generation
-        this_generation = step_generation(*last_generation, s_payoffs=s_payoffs, r_payoffs=r_payoffs)
+        this_generation = step_generation(last_generation[0], last_generation[1], s_payoffs=s_payoffs, r_payoffs=r_payoffs)
         #for i in this_generation:
         #    assert(abs(math.fsum(i) - 1.) < effective_zero_diff)
             
@@ -178,7 +177,7 @@ def go_baby_go(options, s_payoffs, r_payoffs):
     if not options.quiet:
         print "Pool: %s" % pool 
     
-    logger = mp.log_to_stderr()
+    mp.log_to_stderr()
     
     if not options.quiet:
         print "Running %i duplications." % (options.dup,) 
@@ -201,9 +200,9 @@ def go_baby_go(options, s_payoffs, r_payoffs):
     
     stats.close()
 
-if __name__ == '__main__':
+def run():
     from optparse import OptionParser
-    
+
     oparser = OptionParser()
     oparser.add_option("-d", "--duplications", type="int", action="store", dest="dup", default=1, help="number of duplications")
     oparser.add_option("-r", "--routine", action="store", choices=["simil0","simil1","simil2","dist0","dist1","dist2"], dest="routine", help="name of routine to run")
@@ -214,9 +213,9 @@ if __name__ == '__main__':
     oparser.add_option("-s", "--statsfile", action="store", dest="stats_file", default="aggregate", help="file for aggregate stats to be dumped")
     oparser.add_option("-m", "--poolsize", action="store", type="int", dest="pool_size", default=2, help="number of parallel computations to undertake")
     oparser.add_option("-q", "--quiet", action="store_true", dest="quiet", default=False, help="suppress standard output")
-    
+
     (options,args) = oparser.parse_args()
-    
+
     if not options.dup or options.dup <= 0:
         oparser.error("Number of duplications must be positive")
 
@@ -226,36 +225,40 @@ if __name__ == '__main__':
 
 
         go_baby_go(options, s_payoffs, r_payoffs)
-            
+
     elif options.routine == "simil1": #sender map 1
         s_payoffs = p.sender_sim_2_1
         r_payoffs = p.receiver_sim_2[0]
 
         go_baby_go(options, s_payoffs, r_payoffs)
-    
+
     elif options.routine == "simil2": #sender map 3
         s_payoffs = p.sender_sim_2_2
         r_payoffs = p.receiver_sim_2[0]
 
         go_baby_go(options, s_payoffs, r_payoffs)
-    
+
     elif options.routine == "dist0": #common interest
         s_payoffs = p.receiver_dist_2[0]
         r_payoffs = p.receiver_dist_2[0]
 
         go_baby_go(options, s_payoffs, r_payoffs)
-    
+
     elif options.routine == "dist1": #sender map 1
         s_payoffs = p.sender_dist_2_1
         r_payoffs = p.receiver_dist_2[0]
 
         go_baby_go(options, s_payoffs, r_payoffs)
-    
+
     elif options.routine == "dist2": #sender map 3
         s_payoffs = p.sender_dist_2_2
         r_payoffs = p.receiver_dist_2[0]
 
         go_baby_go(options, s_payoffs, r_payoffs)
-    
+
     else:
         oparser.error("Unknown routine selected")
+
+
+if __name__ == '__main__':
+    run()

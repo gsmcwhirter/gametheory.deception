@@ -1,6 +1,6 @@
 import math
 import itertools
-import Payoffs as p
+#import gametheory.deception.learning.payoffs as p
 
 def values_of_information(duplication, cutoff=0.1):
     sender_urns = duplication[1][0]
@@ -98,22 +98,22 @@ def kl_measures(duplication):
     
     return (info_contents, cprobs_all, cprobs2_all)
 
-if __name__ == '__main__':
+def run():
     import cPickle
     from optparse import OptionParser
-    
+
     oparser = OptionParser()
     oparser.add_option("-s", "--statsfile", action="store", dest="stats_file", default="../output/aggregate", help="file holding aggregate stats to be parsed")
     oparser.add_option("-f", "--file", action="store", dest="out_file", default="../output/stats", help="file to dump the stats output (not implemented yet)")
     oparser.add_option("-c", "--cutoff", action="store", type="float", default=0.1, dest="voi_cutoff", help="cutoff value for VOI calculations")
-	
+
     (options,args) = oparser.parse_args()
-    
+
     #of = open(options.out_file,"w")
     sf = open(options.stats_file,"rb")
-    
+
     duplications = []
-    
+
     pickle = ""
     i = 0
     for line in sf:
@@ -123,11 +123,11 @@ if __name__ == '__main__':
             i += 1
             duplications.append((i, cPickle.loads(pickle)))
             pickle = ""
-    
+
     if i == 0:
         print "error"
     sf.close()
-    
+
     for dup in duplications:
         print "-" * 72
         print "Duplication %i" % (dup[0],)
@@ -146,7 +146,7 @@ if __name__ == '__main__':
             print "\t", msgv[0],":",msgv[1]
         print "Values of Information (msg : value(rstar) : average):"
         for msgv in vois:
-            print "\t", msgv[0],":",msgv[1],":",(sum(msgv[1]) / float(len(msgv[1]))) 
+            print "\t", msgv[0],":",msgv[1],":",(sum(msgv[1]) / float(len(msgv[1])))
         (kls, cprobs, cprobs2) = kl_measures(dup)
         print "Conditional Probabilities (msg : pr(msg | state)):"
         for msgv in cprobs:
@@ -157,4 +157,7 @@ if __name__ == '__main__':
         print "KL Information Measures (msg : I_msg(state) : I(msg)):"
         for msgv in kls:
             print "\t",msgv[0],":",msgv[1],":",sum([cprobs2[kls.index(msgv)][1][i] * msgv[1][i] for i in range(len(msgv[1]))])
-        print            
+        print
+
+if __name__ == '__main__':
+    run()

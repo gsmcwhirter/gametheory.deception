@@ -1,15 +1,14 @@
 ## {{{ http://code.activestate.com/recipes/577207/ (r2)
 class Immutable(object):
-     """An immutable class.
-     """
-     _mutable = False
-     def __setattr__(self, name,value):
+    """An immutable class."""
+    _mutable = False
+    def __setattr__(self, name,value):
         if self._mutable or name == '_mutable':
              super(Immutable,self).__setattr__(name,value)
         else:
              raise TypeError("Can't modify immutable instance")
 
-     def __delattr__(self,name):
+    def __delattr__(self,name):
          if self._mutable:
              super(Immutable,self).__delattr__(name)
          else:
@@ -28,23 +27,3 @@ def mutablemethod(f):
         return res
     return func
 
-
-
-if __name__ == '__main__':
-
-    class A(Immutable):
-        '''
-           Define __init__ can set attributes for instance
-        '''
-        @mutablemethod
-        def __init__(self,value):
-            super(A,self).__init__(self)
-            self.value = value
-
-        def try_change(self,value):
-            self.value = value
-
-    a = A("test")
-    a.try_change("TEST")
-    a.value = "TEST"
-## end of http://code.activestate.com/recipes/577207/ }}}

@@ -1,9 +1,8 @@
 import math
 import itertools
-import Payoffs as p
+import gametheory.deception.replicator_comparison.payoffs as p
 import sys
 import multiprocessing as mp
-import logging
 import cPickle
 from sage.all import Graphics, polygon
 
@@ -273,9 +272,9 @@ def go_baby_go(options, s_payoffs, r_payoffs):
         Twitter.tweet(options.tweetmsg, options.tweetat)
         
 
-if __name__ == '__main__':
+def run():
     from optparse import OptionParser
-    
+
     oparser = OptionParser()
     oparser.add_option("-d", "--duplications", type="int", action="store", dest="dup", default=1, help="number of duplications")
     oparser.add_option("-r", "--routine", action="store", choices=["simil0","simil1","simil2"], dest="routine", help="name of routine to run")
@@ -294,21 +293,21 @@ if __name__ == '__main__':
     oparser.add_option("--tweet", action="store_true", dest="tweet", default=False, help="send tweet when complete")
     oparser.add_option("--tweetmsg", action="store", dest="tweetmsg", default="simulation complete", help="the message to send in the tweet")
     oparser.add_option("--tweetat", action="store", dest="tweetat", default=None, help="twitter/identi.ca username to @-target")
-    
+
     (options,args) = oparser.parse_args()
-    
+
     if not options.dup or options.dup <= 0:
         oparser.error("Number of duplications must be positive")
-        
+
     if options.lam <= 0.:
         oparser.error("Lambda parameter must be positive")
-    
+
     if options.lam > .5:
         oparser.error("Unable to handle lambda > .5")
-        
+
     if options.rc_cost <= 0. or options.rnc_cost <= 0.:
         oparser.error("Cost parameters must be positive")
-        
+
     if options.rc_cost >= options.rnc_cost:
         oparser.error("non-combinatorial cost must be greater than combinatorial cost")
 
@@ -316,18 +315,21 @@ if __name__ == '__main__':
 
     if options.routine == "simil0": #common interest
         s_payoffs = p.sender_sim_0()
-        
+
         go_baby_go(options, s_payoffs, r_payoffs)
-            
+
     elif options.routine == "simil1": #sender map 1
         s_payoffs = p.sender_sim_1()
 
         go_baby_go(options, s_payoffs, r_payoffs)
-    
+
     elif options.routine == "simil2": #sender map 3
         s_payoffs = p.sender_sim_2()
 
         go_baby_go(options, s_payoffs, r_payoffs)
-    
+
     else:
         oparser.error("Unknown routine selected")
+
+if __name__ == '__main__':
+    run()
