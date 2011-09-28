@@ -1,7 +1,8 @@
 import math
 import itertools
 import gametheory.deception.replicator.payoffs as p
-from gametheory.deception.replicator.simulations import effective_zero, sender_matrix, receiver_matrix
+from gametheory.base import effective_zero
+from gametheory.deception.replicator.simulations import senderMatrix, receiverMatrix
 
 def values_of_information(final_sender, final_receiver, r_payoffs, n=2):
     msgs = list(itertools.product(range(n), range(n)))
@@ -14,7 +15,7 @@ def values_of_information(final_sender, final_receiver, r_payoffs, n=2):
     for i, msg in enumerate(msgs):
         qs = []
         for j, state in enumerate(states):
-            if any(sender_matrix(s)[j][i] == 1 for (s, s_prob) in final_sender):
+            if any(senderMatrix(s)[j][i] == 1 for (s, s_prob) in final_sender):
                 qs.append(j)
                 
         qs_all.append((msg, qs))
@@ -26,7 +27,7 @@ def values_of_information(final_sender, final_receiver, r_payoffs, n=2):
             for j, state in enumerate(states):
                 p = 0.
                 for (r, r_prob) in final_receiver:
-                    if receiver_matrix(r)[i][j] == 1:
+                    if receiverMatrix(r)[i][j] == 1:
                         p += r_prob
                 
                 actions.append((j, p))
@@ -54,7 +55,7 @@ def kl_measures(final_sender, final_receiver, n=2):
             #cprobs.append(pr(msg | state))
             p = 0.
             for (s, sprob) in final_sender:
-                if sender_matrix(s)[j][i] == 1:
+                if senderMatrix(s)[j][i] == 1:
                     p += sprob
             
             cprobs_m_s.append(p)
@@ -212,11 +213,11 @@ def output_klstats(duplications, options, r_payoffs, s_payoffs):
         f_decept = False
         
         for s_i, (s, sprob) in enumerate(final_sender):
-            smat = sender_matrix(s)
+            smat = senderMatrix(s)
             for msg_i in misinfo_msgs:
                 states = [state_i for state_i, row in enumerate(smat) if row[msg_i] == 1] 
                 for r_i, (r, rprob) in enumerate(final_receiver):
-                    rmat = receiver_matrix(r)
+                    rmat = receiverMatrix(r)
                     act_i = rmat[msg_i].index(1)
                     for state_i in states:
                         receiver_actual = r_payoffs[state_i][act_i]
@@ -290,6 +291,7 @@ def run():
 
     #of = open(options.out_file,"w")
     sf = open(options.stats_file,"rb")
+    run_options = None
     duplications = []
     pickle = ""
     i = 0
@@ -298,10 +300,13 @@ def run():
             pickle += line
         else:
             i += 1
-            duplications.append((i, cPickle.loads(pickle)))
+            if i == 1:
+                run_options = cPickle.load(pickle)
+            else:
+                duplications.append((i, cPickle.loads(pickle)))
             pickle = ""
 
-    if i == 0:
+    if i <= 1:
         print "error"
     sf.close()
 
