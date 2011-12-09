@@ -1,0 +1,5 @@
+#!/usr/bin/env python
+
+from gametheory.deception.replicator_comparison.simulations import Simulation, SimulationBatch
+
+SimulationBatch(Simulation).go()
