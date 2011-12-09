@@ -12,7 +12,6 @@ setup (
     package_dir = {
         '': 'src',
     },
-    requires = ["gametheory.base >= 0.1"],
     author = 'Gregory McWhirter',
     author_email = 'gmcwhirt@uci.edu',
     description = 'Game theory simulations for deception research',
