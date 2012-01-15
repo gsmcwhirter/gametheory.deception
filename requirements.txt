@@ -1,4 +1,0 @@
---extra-index-url https://www.ideafreemonoid.org/pip/
-gametheory.deception
-gametheory.base>=0.1
-numpy>=1.5
