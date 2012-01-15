@@ -6,6 +6,7 @@ setup (
     name = 'gametheory.deception',
     version = '0.1',
     packages = [
+	"gametheory.deception",
         "gametheory.deception.replicator",
         "gametheory.deception.replicator_comparison"
     ],
