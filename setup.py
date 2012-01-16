@@ -18,6 +18,8 @@ setup (
         'gametheory.base'
     ],
     dependency_links = ["https://www.ideafreemonoid.org/pip"],
+    test_suite = 'nose.collector',
+    tests_require = ['nose'],
     author = 'Gregory McWhirter',
     author_email = 'gmcwhirt@uci.edu',
     description = 'Game theory simulations for deception research',
