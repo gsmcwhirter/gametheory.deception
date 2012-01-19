@@ -1,12 +1,11 @@
+import gametheory.deception.replicator_comparison.payoffs as p
 import itertools
 import math
 import numpy.random as rand
 import sys
 
-from gametheory.base.simulation import Simulation as SimBase
+from gametheory.base.dynamics.discrete_replicator import NPopDiscreteReplicatorDynamics as SimBase
 from gametheory.base.simulation import SimulationBatch as SimBatchBase
-
-import gametheory.deception.replicator_comparison.payoffs as p
 
 _nograpics = False
 try:
@@ -27,9 +26,6 @@ class SimulationBatch(SimBatchBase):
         self._oparser.add_option("--nc", action="store", type="float", dest="rnc_cost", default=8., help="cost parameter for non-combinatorial receivers")
         self._oparser.add_option("--graph", action="store", type="int", dest="graph_skip", default=10, help="graph the population in increments of this many generations (-1 for never, 0 for start and end only)")
         self._oparser.add_option("--graphfile", action="store", dest="graph_file", default="duplication_{0}_gen_{1}_{2}.png", help="file name template for population graphs")
-        self._oparser.add_option("--tweet", action="store_true", dest="tweet", default=False, help="send tweet when complete")
-        self._oparser.add_option("--tweetmsg", action="store", dest="tweetmsg", default="simulation complete", help="the message to send in the tweet")
-        self._oparser.add_option("--tweetat", action="store", dest="tweetat", default=None, help="twitter/identi.ca username to @-target")
 
     def _check_options(self):
         if not self._options.routine in self._choices:
@@ -66,12 +62,12 @@ class SimulationBatch(SimBatchBase):
     def _format_run(self, result):
         return "{2} {1} {0}".format(*result)
 
-    def _when_done(self):
-        if self._options.tweet:
-            import Twitter
-            Twitter.tweet(self._options.tweetmsg, self._options.tweetat)
-
 class Simulation(SimBase):
+    
+    _types = [
+        range(256),
+        range(256 + 16)
+    ]
 
     @staticmethod
     def sender_matrix(s):
@@ -143,24 +139,24 @@ class Simulation(SimBase):
     @classmethod
     def graph_senders(cls, pop):
         return cls.graph_receivers([(popi, 2) for popi in pop])
-
-    @classmethod
-    def interaction(cls, n, s, r, n_r_1):
-        if r >= n_r_1:
-            r -= n_r_1
+        
+    def _interaction(self, me, sender, receiver):
+        n = 4
+        n_r_1 = 256
+        
+        if receiver >= n_r_1:
+            reciever -= n_r_1
             rt = 1
         else:
             rt = 0
-
-        smat = cls.sender_matrix(s)
-        rmat = cls.receiver_matrix(r, rt)
-        return [(i, rmat[srow.index(1)].index(1)) for i, srow in enumerate(smat)]
-
-    @staticmethod
-    def pop_equals(last, this):
-        senders_equal = not any(abs(i - j) >= effective_zero for i, j in itertools.izip(last[0], this[0]))
-        receivers_equal = not any(abs(i - j) >= effective_zero for (i, ti), (j, tj) in itertools.izip(last[1], this[1]))
-        return senders_equal and receivers_equal
+            
+        smat = self.sender_matrix(sender)
+        rmat = self.receiver_matrix(reciever, rt)
+        
+        state_acts = [(i, rmat[srow.index(1)].index(1)) for i, srow in enumerate(smat)]
+        state_probs = [1. / float(n) for _ in xrange(len(smat))]
+        
+        self._interactions = dict([((s, r), self._interaction(4, s, r, n_r_1)) for s, r in itertools.product(range(n_s), range(n_r_1 + n_r_2))])
 
     def step_generation(self, senders, receivers):
         # x_i(t+1) = (a + u(e^i, x(t)))*x_i(t) / (a + u(x(t), x(t)))
@@ -223,7 +219,7 @@ class Simulation(SimBase):
         last_generation = ((0.,),((0., 0),))
         generation_count = 0
 
-        self._interactions = dict([((s, r), self._interaction(4, s, r, n_r_1)) for s, r in itertools.product(range(n_s), range(n_r_1 + n_r_2))])
+        
 
         if self._data['gphx_skip'] >= 0:
             self.graph_senders(initial_senders).save(self._data['gphx_file'].format(dup_num, 0, "senders"), ymin=-0.1, ymax=1.1)

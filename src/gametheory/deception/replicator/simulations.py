@@ -1,56 +1,71 @@
+import gametheory.deception.replicator.payoffs as p
 import itertools
 import math
 import numpy.random as rand
 import sys
 
+from gametheory.base.dynamics.discrete_replicator import NPopDiscreteReplicatorDynamics as NPDRD
 from gametheory.base.simulation import SimulationBatch as SimBatchBase
-from gametheory.base.simulation import Simulation as SimBase
-
-import gametheory.deception.replicator.payoffs as p
-
-effective_zero = 1e-10
 
 class SimulationBatch(SimBatchBase):
 
     _choices = ["simil0","simil1","simil2","dist0","dist1","dist2"]
+    
+    def _add_listeners(self):
 
-    def _set_options(self):
-        self._oparser.add_option("-r", "--routine", action="store", choices=self._choices, dest="routine", help="name of routine to run")
+        def _set_options(this):
+            this._oparser.add_option("-r", "--routine", action="store", choices=self._choices, dest="routine", help="name of routine to run")
+    
+        def _check_options(this):
+            if not this._options.routine in this._choices:
+                this._oparser.error("Unknown routine selected")
+                
+        def _set_data(this):
+            if this._options.routine == "simil0": #common interest
+                this._data['s_payoffs'] = p.receiver_sim_2[0]
+                this._data['r_payoffs'] = p.receiver_sim_2[0]
+    
+            elif this._options.routine == "simil1": #sender map 1
+                this._data['s_payoffs'] = p.sender_sim_2_1
+                this._data['r_payoffs'] = p.receiver_sim_2[0]
+    
+            elif this._options.routine == "simil2": #sender map 3
+                this._data['s_payoffs'] = p.sender_sim_2_2
+                this._data['r_payoffs'] = p.receiver_sim_2[0]
+    
+            elif this._options.routine == "dist0": #common interest
+                this._data['s_payoffs'] = p.receiver_dist_2[0]
+                this._data['r_payoffs'] = p.receiver_dist_2[0]
+    
+            elif this._options.routine == "dist1": #sender map 1
+                this._data['s_payoffs'] = p.sender_dist_2_1
+                this._data['r_payoffs'] = p.receiver_dist_2[0]
+    
+            elif this._options.routine == "dist2": #sender map 3
+                this._data['s_payoffs'] = p.sender_dist_2_2
+                this._data['r_payoffs'] = p.receiver_dist_2[0]
+        
+        def _format_run(this, result):
+            this.finished_count += 1
+            if not this._options.quiet:
+                print "Generations: {0}\nInitial Population: {1}\nFinal Population: {2}".format(*result)
+                print "done #{0}".format(this.finished_count)
+            
+        
+        self.on('oparser set up', _set_options)
+        self.on('options parsed', _check_options)
+        self.on('options parsed', _set_data)
+        
+        self.removeAllListeners('result')
+        self.on('result', _format_run)
+    
 
-    def _check_options(self):
-        if not self._options.routine in self._choices:
-            self._oparser.error("Unknown routine selected")
-
-
-    def _set_data(self):
-        if self._options.routine == "simil0": #common interest
-            self._data['s_payoffs'] = p.receiver_sim_2[0]
-            self._data['r_payoffs'] = p.receiver_sim_2[0]
-
-        elif self._options.routine == "simil1": #sender map 1
-            self._data['s_payoffs'] = p.sender_sim_2_1
-            self._data['r_payoffs'] = p.receiver_sim_2[0]
-
-        elif self._options.routine == "simil2": #sender map 3
-            self._data['s_payoffs'] = p.sender_sim_2_2
-            self._data['r_payoffs'] = p.receiver_sim_2[0]
-
-        elif self._options.routine == "dist0": #common interest
-            self._data['s_payoffs'] = p.receiver_dist_2[0]
-            self._data['r_payoffs'] = p.receiver_dist_2[0]
-
-        elif self._options.routine == "dist1": #sender map 1
-            self._data['s_payoffs'] = p.sender_dist_2_1
-            self._data['r_payoffs'] = p.receiver_dist_2[0]
-
-        elif self._options.routine == "dist2": #sender map 3
-            self._data['s_payoffs'] = p.sender_dist_2_2
-            self._data['r_payoffs'] = p.receiver_dist_2[0]
-
-    def _format_run(self, result):
-        return "{2} {1} {0}".format(*result)
-
-class Simulation(SimBase):
+class Simulation(NPDRD):
+    
+    _types = [
+        range(265),
+        range(16)
+    ]
 
     @staticmethod
     def sender_matrix(s):
@@ -108,109 +123,18 @@ class Simulation(SimBase):
                     )
                 )
 
-
-    @classmethod
-    def interaction(cls, n, s, r):
-        smat = cls.sender_matrix(s)
-        rmat = cls.receiver_matrix(r)
-        return [(i, rmat[smat[i].index(1)].index(1)) for i in range(n)]
-
-    @staticmethod
-    def pop_equals(last, this):
-        senders_equal = not any(abs(i - j) >= effective_zero for i, j in itertools.izip(last[0], this[0]))
-        receivers_equal = not any(abs(i - j) >= effective_zero for i, j in itertools.izip(last[1], this[1]))
-        return senders_equal and receivers_equal
-
-    def step_generation(self, senders, receivers):
-        # x_i(t+1) = (a + u(e^i, x(t)))*x_i(t) / (a + u(x(t), x(t)))
-        # a is background (lifetime) birthrate -- set to 0
-
-        s_payoffs = self._data['s_payoffs']
-        r_payoffs = self._data['r_payoffs']
-
-        n_s = len(senders)
-        n_r = len(receivers)
-
-        s_fitness = [0] * n_s
-        r_fitness = [0] * n_r
-        for s, r in itertools.product(range(n_s), range(n_r)):
-            state_acts = self.interaction(4, s, r)
-            s_fitness[s] += math.fsum(s_payoffs[state][act] * receivers[r] for state, act in state_acts) / 4.
-            r_fitness[r] += math.fsum(r_payoffs[state][act] * senders[s] for state, act in state_acts) / 4.
-
-        avg_s = math.fsum(s_fitness[s] * senders[s] for s in range(n_s))
-        avg_r = math.fsum(r_fitness[r] * receivers[r] for r in range(n_r))
-
-        new_senders = [s_fitness[s] * senders[s] / avg_s for s in range(n_s)]
-        new_receivers = [r_fitness[r] * receivers[r] / avg_r for r in range(n_r)]
-
-        for s in range(n_s):
-            if new_senders[s] < effective_zero:
-                new_senders[s] = 0.
-        for r in range(n_r):
-            if new_receivers[r] < effective_zero:
-                new_receivers[r] = 0.
-
-        return (tuple(new_senders), tuple(new_receivers))
-
-    def run(self):
-        rand.seed()
-
-        if self._outfile:
-            out_stdout = False
-            out = open(self._outfile, "w")
+    def _interaction(self, me, sender, receiver):
+        smat = self.sender_matrix(sender)
+        rmat = self.receiver_matrix(receiver)
+        
+        n = 4
+        
+        state_acts = [(i, rmat[smat[i].index(1)].index(1)) for i in range(n)]
+        state_probs = [1. / float(n) for _ in range(n)]
+        
+        if me == 0:
+            return math.fsum(self._data['s_payoffs'][state][act] * state_probs[i] for i, (state, act) in enumerate(state_acts))
+        elif me == 1:
+            return math.fsum(self._data['r_payoffs'][state][act] * state_probs[i] for i, (state, act) in enumerate(state_acts))
         else:
-            out_stdout = True
-            out = sys.stdout
-
-        n_s = 256
-        n_r = 16
-        rand.seed()
-        initial_senders = tuple(rand.dirichlet([1] * n_s))
-        initial_receivers = tuple(rand.dirichlet([1] * n_r))
-        this_generation = (initial_senders, initial_receivers)
-
-        if not out_stdout or not self._quiet:
-            print >>out, "Initial State"
-            print >>out, "Senders:"
-            print >>out, "\t", initial_senders
-            print >>out, "Receivers:"
-            print >>out, "\t", initial_receivers
-            print >>out
-
-        last_generation = ((0.,),(0.,))
-        generation_count = 0
-        while not self.pop_equals(last_generation, this_generation):
-            generation_count += 1
-            last_generation = this_generation
-            this_generation = self.step_generation(*last_generation)
-
-            if (not out_stdout or not self._quiet) and self._skip and generation_count % self._skip == 0:
-                print >>out, "-" * 72
-                print >>out, "Generation {0}".format(generation_count)
-                print >>out, "Senders:"
-                print >>out, "\t{0}".format(this_generation[0])
-                print >>out, "Receivers:"
-                print >>out, "\t{0}".format(this_generation[1])
-                print >>out
-                out.flush()
-
-        if not out_stdout or not self._quiet:
-            print >>out, "=" * 72
-            print >>out, "Stable state! ({0} generations)".format(generation_count)
-            print >>out, "Senders:"
-            print >>out, "\t{0}".format(this_generation[0])
-            for i, pop in enumerate(this_generation[0]):
-                if pop != 0.:
-                    print >>out, "\t\t{0}: {1}".format(i, pop)
-            print >>out
-            print >>out, "Receivers:"
-            print >>out, "\t{0}".format(this_generation[1])
-            for i, pop in enumerate(this_generation[1]):
-                if pop != 0.:
-                    print >>out, "\t\t{0}: {1}".format(i, pop)
-
-        if not out_stdout:
-            out.close()
-
-        return ((initial_senders, initial_receivers), this_generation, generation_count)
+            raise ValueError("Unknown me value")

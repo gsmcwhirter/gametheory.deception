@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup (
     name = 'gametheory.deception',
-    version = '0.1',
+    version = '0.2.0',
     packages = [
         "gametheory.deception",
         "gametheory.deception.replicator",
@@ -15,7 +15,7 @@ setup (
     },
     install_requires = [
         'distribute',
-        'gametheory.base'
+        'gametheory.base (>=0.3.0)'
     ],
     dependency_links = ["https://www.ideafreemonoid.org/pip"],
     test_suite = 'nose.collector',
